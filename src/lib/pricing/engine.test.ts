@@ -93,6 +93,19 @@ describe("computePricing", () => {
     expect(r.allocations.distributor).toBe(Math.round(r.pricePaid * 0.25));
   });
 
+  it("coincide exactamente con el cálculo SQL (paridad motor TS ↔ DB)", () => {
+    // Cap nacional (costo 32000 + envío 1000) con los % por defecto.
+    // Valores verificados contra la función SQL fc_compute_pricing.
+    const r = computePricing(capNacional, DEFAULT_PRICING_SETTINGS);
+    expect(r.listPrice).toBe(107900);
+    expect(r.pricePaid).toBe(97110);
+    expect(r.allocations.cost).toBe(33000);
+    expect(r.allocations.investor).toBe(29133);
+    expect(r.allocations.distributor).toBe(24278);
+    expect(r.allocations.gateway).toBe(3884);
+    expect(r.allocations.company).toBe(6815);
+  });
+
   it("con los % pedidos el markup queda cerca de 3.3x", () => {
     const r = computePricing(capNacional, DEFAULT_PRICING_SETTINGS);
     expect(r.markupMultiple).toBeGreaterThan(3);
