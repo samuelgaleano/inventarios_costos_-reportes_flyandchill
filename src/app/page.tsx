@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { ArrowRight, BarChart3, Boxes, Calculator, Receipt } from "lucide-react";
+import { getAuth, roleHome } from "@/lib/auth";
 
 const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME ?? "Fly & Chill";
 
@@ -26,7 +28,10 @@ const features = [
   },
 ];
 
-export default function HomePage() {
+export default async function HomePage() {
+  const auth = await getAuth();
+  if (auth) redirect(roleHome(auth.profile.role));
+
   return (
     <main className="relative flex min-h-screen flex-col">
       <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-5">
