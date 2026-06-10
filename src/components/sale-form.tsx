@@ -1,0 +1,112 @@
+"use client";
+
+import { useActionState, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { AlertCircle, CheckCircle2, ShoppingCart } from "lucide-react";
+import { registerSale } from "@/lib/actions/sales";
+import { initialActionState } from "@/lib/actions/types";
+import { Button } from "@/components/ui/button";
+import { Input, Label, Select, Textarea } from "@/components/ui/input";
+import { PAYMENT_METHODS } from "@/lib/supabase/types";
+import { PAYMENT_LABELS } from "@/lib/labels";
+
+export function SaleForm({
+  products,
+  origins,
+}: {
+  products: { id: string; name: string }[];
+  /** Si se provee, muestra selector de origen (uso del administrador). */
+  origins?: { value: string; label: string }[];
+}) {
+  const router = useRouter();
+  const [state, action, pending] = useActionState(registerSale, initialActionState);
+  const [formKey, setFormKey] = useState(0);
+
+  useEffect(() => {
+    if (state.ok) {
+      router.refresh();
+      setFormKey((k) => k + 1);
+    }
+  }, [state.ok, router]);
+
+  return (
+    <form key={formKey} action={action} className="space-y-4">
+      <div className="space-y-1.5">
+        <Label htmlFor="s_product">Producto</Label>
+        <Select id="s_product" name="product_id" required defaultValue="">
+          <option value="" disabled>
+            Selecciona…
+          </option>
+          {products.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name}
+            </option>
+          ))}
+        </Select>
+      </div>
+
+      {origins && (
+        <div className="space-y-1.5">
+          <Label htmlFor="s_origin">Origen del producto</Label>
+          <Select id="s_origin" name="origin" defaultValue="bodega">
+            {origins.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </Select>
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-1.5">
+          <Label htmlFor="s_qty">Cantidad</Label>
+          <Input id="s_qty" name="quantity" type="number" min={1} step={1} required />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="s_date">Fecha</Label>
+          <Input
+            id="s_date"
+            name="sale_date"
+            type="date"
+            defaultValue={new Date().toISOString().slice(0, 10)}
+          />
+        </div>
+      </div>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="s_pay">Método de pago</Label>
+        <Select id="s_pay" name="payment_method" defaultValue="efectivo">
+          {PAYMENT_METHODS.map((m) => (
+            <option key={m} value={m}>
+              {PAYMENT_LABELS[m]}
+            </option>
+          ))}
+        </Select>
+      </div>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="s_note">Nota (opcional)</Label>
+        <Textarea id="s_note" name="note" rows={2} placeholder="Cliente, referencia…" />
+      </div>
+
+      {state.error && (
+        <div className="flex items-start gap-2 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>{state.error}</span>
+        </div>
+      )}
+      {state.ok && (
+        <div className="flex items-start gap-2 rounded-lg bg-success/10 p-3 text-sm text-success">
+          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>{state.message}</span>
+        </div>
+      )}
+
+      <Button type="submit" variant="brand" className="w-full" disabled={pending}>
+        <ShoppingCart className="h-4 w-4" />
+        {pending ? "Registrando…" : "Registrar venta"}
+      </Button>
+    </form>
+  );
+}
