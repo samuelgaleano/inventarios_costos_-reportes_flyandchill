@@ -1,6 +1,7 @@
 import "server-only";
 import { redirect } from "next/navigation";
 import { createClient } from "./supabase/server";
+import { isSupabaseConfigured } from "./supabase/config";
 import type { ProfileRow, UserRole } from "./supabase/types";
 
 export interface AuthContext {
@@ -16,6 +17,7 @@ export function roleHome(role: UserRole): string {
 
 /** Usuario + perfil actuales (o null si no hay sesión). */
 export async function getAuth(): Promise<AuthContext | null> {
+  if (!isSupabaseConfigured()) return null;
   const supabase = await createClient();
   const {
     data: { user },

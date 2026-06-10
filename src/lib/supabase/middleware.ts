@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { isSupabaseConfigured } from "./config";
 
 /** Rutas que requieren sesión iniciada. */
 const PROTECTED_PREFIXES = ["/admin", "/distribuidor"];
@@ -10,6 +11,11 @@ const PROTECTED_PREFIXES = ["/admin", "/distribuidor"];
  * los layouts de cada sección.
  */
 export async function updateSession(request: NextRequest) {
+  // Sin credenciales aún (p. ej. despliegue recién creado): no bloquear nada.
+  if (!isSupabaseConfigured()) {
+    return NextResponse.next({ request });
+  }
+
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(

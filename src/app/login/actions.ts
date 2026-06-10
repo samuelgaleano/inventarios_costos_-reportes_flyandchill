@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { roleHome } from "@/lib/auth";
 
 export interface LoginState {
@@ -17,6 +18,13 @@ export async function signIn(
 
   if (!email || !password) {
     return { error: "Ingresa tu correo y contraseña." };
+  }
+
+  if (!isSupabaseConfigured()) {
+    return {
+      error:
+        "La base de datos aún no está configurada. Agrega las variables de Supabase en el despliegue.",
+    };
   }
 
   const supabase = await createClient();
