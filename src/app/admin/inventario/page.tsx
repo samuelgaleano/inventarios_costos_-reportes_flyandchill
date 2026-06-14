@@ -22,11 +22,12 @@ const MOVEMENT_LABELS: Record<MovementType, { label: string; tone: "brand" | "su
 export default async function InventarioPage() {
   const supabase = await createClient();
 
-  const [{ data: summary }, { data: products }, { data: distributors }, { data: movements }] =
+  const [{ data: summary }, { data: products }, { data: distributors }, { data: distInv }, { data: movements }] =
     await Promise.all([
       supabase.from("inventory_summary").select("*").order("name"),
       supabase.from("products").select("*").eq("active", true).order("name"),
       supabase.from("distributors").select("*").eq("active", true).order("name"),
+      supabase.from("inventory").select("*").eq("location", "distribuidor"),
       supabase
         .from("inventory_movements")
         .select("*")
@@ -37,6 +38,15 @@ export default async function InventarioPage() {
   const rows = summary ?? [];
   const productMap = new Map((products ?? []).map((p) => [p.id, p.name]));
   const distMap = new Map((distributors ?? []).map((d) => [d.id, d.name]));
+
+  // Inventario agrupado por distribuidor
+  const invByDist = new Map<string, { name: string; quantity: number }[]>();
+  for (const r of distInv ?? []) {
+    if (!r.distributor_id || r.quantity <= 0) continue;
+    const arr = invByDist.get(r.distributor_id) ?? [];
+    arr.push({ name: productMap.get(r.product_id) ?? "Producto", quantity: r.quantity });
+    invByDist.set(r.distributor_id, arr);
+  }
 
   const totalBodega = rows.reduce((s, r) => s + r.bodega, 0);
   const totalDist = rows.reduce((s, r) => s + r.distribuidor, 0);
@@ -94,6 +104,62 @@ export default async function InventarioPage() {
           </TBody>
         </Table>
       </Card>
+
+      <div className="mb-6">
+        <div className="mb-3">
+          <h2 className="font-semibold">Inventario por distribuidor</h2>
+          <p className="text-sm text-muted-foreground">
+            Existencias que tiene asignadas cada distribuidor.
+          </p>
+        </div>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          {(distributors ?? []).map((d) => {
+            const items = (invByDist.get(d.id) ?? []).sort((a, b) =>
+              a.name.localeCompare(b.name),
+            );
+            const total = items.reduce((s, i) => s + i.quantity, 0);
+            return (
+              <Card key={d.id}>
+                <div className="flex items-center justify-between p-5 pb-3">
+                  <h3 className="font-semibold">{d.name}</h3>
+                  <Badge tone="brand">{formatNumber(total)} uds.</Badge>
+                </div>
+                {items.length > 0 ? (
+                  <Table>
+                    <THead>
+                      <TR>
+                        <TH>Producto</TH>
+                        <TH className="text-right">Cantidad</TH>
+                      </TR>
+                    </THead>
+                    <TBody>
+                      {items.map((it) => (
+                        <TR key={it.name}>
+                          <TD className="font-medium">{it.name}</TD>
+                          <TD className="text-right font-semibold tabular-nums">
+                            {formatNumber(it.quantity)}
+                          </TD>
+                        </TR>
+                      ))}
+                    </TBody>
+                  </Table>
+                ) : (
+                  <p className="px-5 pb-5 text-sm text-muted-foreground">
+                    Sin inventario asignado aún.
+                  </p>
+                )}
+              </Card>
+            );
+          })}
+          {(distributors ?? []).length === 0 && (
+            <Card>
+              <p className="p-5 text-sm text-muted-foreground">
+                No hay distribuidores. Crea uno en Configuración.
+              </p>
+            </Card>
+          )}
+        </div>
+      </div>
 
       <Card>
         <div className="p-5 pb-3">
