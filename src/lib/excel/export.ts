@@ -50,8 +50,8 @@ export async function buildWorkbookBuffer(): Promise<Buffer> {
     { header: "Costo mín.", key: "min_cost", width: 13, style: { numFmt: CURRENCY_FMT } },
     { header: "P. lista", key: "list_price", width: 13, style: { numFmt: CURRENCY_FMT } },
     { header: "Con descuento", key: "price_paid", width: 14, style: { numFmt: CURRENCY_FMT } },
+    { header: "Comisión", key: "commission", width: 12, style: { numFmt: CURRENCY_FMT } },
     { header: "Inversionista", key: "investor", width: 13, style: { numFmt: CURRENCY_FMT } },
-    { header: "Distribuidor", key: "distributor", width: 13, style: { numFmt: CURRENCY_FMT } },
     { header: "Empresa", key: "company", width: 12, style: { numFmt: CURRENCY_FMT } },
     { header: "Pasarela", key: "gateway", width: 11, style: { numFmt: CURRENCY_FMT } },
   ];

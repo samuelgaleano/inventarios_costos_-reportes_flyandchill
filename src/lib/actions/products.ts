@@ -12,6 +12,8 @@ const productSchema = z.object({
   unit_cost: z.coerce.number().min(0, "El costo no puede ser negativo."),
   shipping_cost: z.coerce.number().min(0, "El envío no puede ser negativo."),
   operating_cost: z.coerce.number().min(0, "El operativo no puede ser negativo."),
+  commission_sale: z.coerce.number().min(0).optional(),
+  commission_shipping: z.coerce.number().min(0).optional(),
 });
 
 export async function createProduct(
@@ -30,6 +32,8 @@ export async function createProduct(
     unit_cost: parsed.data.unit_cost,
     shipping_cost: parsed.data.shipping_cost,
     operating_cost: parsed.data.operating_cost,
+    commission_sale: parsed.data.commission_sale ?? 0,
+    commission_shipping: parsed.data.commission_shipping ?? 0,
   });
   if (error) return { error: error.message };
   revalidatePath("/admin/precios");
@@ -57,6 +61,8 @@ export async function updateProduct(
       unit_cost: parsed.data.unit_cost,
       shipping_cost: parsed.data.shipping_cost,
       operating_cost: parsed.data.operating_cost,
+      commission_sale: parsed.data.commission_sale ?? 0,
+      commission_shipping: parsed.data.commission_shipping ?? 0,
     })
     .eq("id", id);
   if (error) return { error: error.message };
@@ -74,7 +80,6 @@ export async function toggleProductActive(id: string, active: boolean) {
 
 const pricingSchema = z.object({
   investor_pct: z.coerce.number().min(0).max(100),
-  distributor_pct: z.coerce.number().min(0).max(100),
   company_pct: z.coerce.number().min(0).max(100),
   gateway_pct: z.coerce.number().min(0).max(100),
   discount_pct: z.coerce.number().min(0).max(99),
@@ -91,11 +96,10 @@ export async function updatePricingSettings(
     return { error: parsed.error.issues[0]?.message ?? "Datos inválidos." };
   }
   const d = parsed.data;
-  const marginSum =
-    d.investor_pct + d.distributor_pct + d.company_pct + d.gateway_pct;
-  if (marginSum >= 100) {
+  const base = d.investor_pct + d.company_pct + d.gateway_pct;
+  if (base >= 100) {
     return {
-      error: `La suma de márgenes (${marginSum.toFixed(1)}%) debe ser menor a 100%.`,
+      error: `La suma de inversionista + empresa + pasarela (${base.toFixed(1)}%) debe ser menor a 100%.`,
     };
   }
   const supabase = await createClient();
@@ -103,7 +107,6 @@ export async function updatePricingSettings(
     .from("pricing_settings")
     .update({
       investor_pct: d.investor_pct / 100,
-      distributor_pct: d.distributor_pct / 100,
       company_pct: d.company_pct / 100,
       gateway_pct: d.gateway_pct / 100,
       discount_pct: d.discount_pct / 100,

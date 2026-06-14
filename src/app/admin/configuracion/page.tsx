@@ -44,6 +44,7 @@ export default async function ConfiguracionPage() {
               <THead>
                 <TR>
                   <TH>Nombre</TH>
+                  <TH>Tipo</TH>
                   <TH>Correo</TH>
                   <TH>Teléfono</TH>
                   <TH>Estado</TH>
@@ -54,6 +55,11 @@ export default async function ConfiguracionPage() {
                 {dists.map((d) => (
                   <TR key={d.id}>
                     <TD className="font-medium">{d.name}</TD>
+                    <TD>
+                      <Badge tone={d.type === "colaborador" ? "brand" : "neutral"}>
+                        {d.type === "colaborador" ? "Colaborador" : "Básico"}
+                      </Badge>
+                    </TD>
                     <TD className="text-muted-foreground">{d.contact_email ?? "—"}</TD>
                     <TD className="text-muted-foreground">{d.contact_phone ?? "—"}</TD>
                     <TD>
@@ -68,7 +74,7 @@ export default async function ConfiguracionPage() {
                 ))}
                 {dists.length === 0 && (
                   <TR>
-                    <TD className="py-8 text-center text-muted-foreground" colSpan={5}>
+                    <TD className="py-8 text-center text-muted-foreground" colSpan={6}>
                       Aún no hay distribuidores.
                     </TD>
                   </TR>

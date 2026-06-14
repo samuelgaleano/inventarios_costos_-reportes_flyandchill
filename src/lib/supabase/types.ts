@@ -4,6 +4,7 @@
  */
 
 export type UserRole = "admin" | "distribuidor";
+export type DistributorType = "colaborador" | "basico";
 export type InventoryLocation = "bodega" | "distribuidor";
 export type MovementType = "compra" | "transferencia" | "venta" | "ajuste";
 export type PaymentMethod =
@@ -30,6 +31,8 @@ export type ProductRow = {
   unit_cost: number;
   shipping_cost: number;
   operating_cost: number;
+  commission_sale: number;
+  commission_shipping: number;
   active: boolean;
   created_at: string;
   updated_at: string;
@@ -49,6 +52,7 @@ export type PricingSettingsRow = {
 export type DistributorRow = {
   id: string;
   name: string;
+  type: DistributorType;
   contact_email: string | null;
   contact_phone: string | null;
   active: boolean;
@@ -130,15 +134,17 @@ export type ProductPricingRow = {
   unit_cost: number;
   shipping_cost: number;
   operating_cost: number;
+  commission_sale: number;
+  commission_shipping: number;
   min_cost: number;
   list_price: number;
   price_paid: number;
   discount_amount: number;
   cost: number;
   investor: number;
-  distributor: number;
-  gateway: number;
   company: number;
+  gateway: number;
+  commission: number;
 }
 
 export type InventorySummaryRow = {
@@ -205,6 +211,8 @@ export interface Database {
           | "sku"
           | "shipping_cost"
           | "operating_cost"
+          | "commission_sale"
+          | "commission_shipping"
           | "active"
           | "created_at"
           | "updated_at"
@@ -220,7 +228,7 @@ export interface Database {
       };
       distributors: {
         Row: DistributorRow;
-        Insert: InsertOf<DistributorRow, "id" | "contact_email" | "contact_phone" | "active" | "created_at">;
+        Insert: InsertOf<DistributorRow, "id" | "type" | "contact_email" | "contact_phone" | "active" | "created_at">;
         Update: Partial<DistributorRow>;
         Relationships: Rel;
       };

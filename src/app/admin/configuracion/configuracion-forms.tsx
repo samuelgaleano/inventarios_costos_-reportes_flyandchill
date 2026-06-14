@@ -54,6 +54,13 @@ export function AddDistributor() {
             <Label htmlFor="d_name">Nombre</Label>
             <Input id="d_name" name="name" required />
           </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="d_type">Tipo</Label>
+            <Select id="d_type" name="type" defaultValue="basico">
+              <option value="basico">Distribuidor básico (compra a precio mínimo)</option>
+              <option value="colaborador">Colaborador (vende a precio final + comisión)</option>
+            </Select>
+          </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label htmlFor="d_email">Correo (opcional)</Label>

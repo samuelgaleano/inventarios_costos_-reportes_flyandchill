@@ -6,7 +6,7 @@ import { AlertCircle, CheckCircle2, Pencil, Plus, Save } from "lucide-react";
 import { computePricing, type PricingSettings } from "@/lib/pricing";
 import { updatePricingSettings } from "@/lib/actions/products";
 import { initialActionState } from "@/lib/actions/types";
-import { formatCurrency, formatPercent } from "@/lib/format";
+import { formatCurrency } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -18,7 +18,6 @@ import { ProductForm } from "./product-form";
 
 type PctState = {
   investor: number;
-  distributor: number;
   company: number;
   gateway: number;
   discount: number;
@@ -31,7 +30,6 @@ const FIELDS: {
   name: string;
 }[] = [
   { key: "investor", label: "Inversionista", name: "investor_pct" },
-  { key: "distributor", label: "Distribuidor", name: "distributor_pct" },
   { key: "company", label: "Margen empresa", name: "company_pct" },
   { key: "gateway", label: "Pasarela de pago", name: "gateway_pct" },
   { key: "discount", label: "Código de descuento", name: "discount_pct" },
@@ -47,7 +45,6 @@ export function PreciosClient({
   const router = useRouter();
   const [pct, setPct] = useState<PctState>({
     investor: Math.round(settings.investor_pct * 1000) / 10,
-    distributor: Math.round(settings.distributor_pct * 1000) / 10,
     company: Math.round(settings.company_pct * 1000) / 10,
     gateway: Math.round(settings.gateway_pct * 1000) / 10,
     discount: Math.round(settings.discount_pct * 1000) / 10,
@@ -68,7 +65,6 @@ export function PreciosClient({
   const liveSettings: PricingSettings = useMemo(
     () => ({
       investorPct: pct.investor / 100,
-      distributorPct: pct.distributor / 100,
       companyPct: pct.company / 100,
       gatewayPct: pct.gateway / 100,
       discountPct: pct.discount / 100,
@@ -77,8 +73,8 @@ export function PreciosClient({
     [pct],
   );
 
-  const marginSum = pct.investor + pct.distributor + pct.company + pct.gateway;
-  const invalid = marginSum >= 100 || pct.discount >= 100;
+  const base = pct.investor + pct.company + pct.gateway;
+  const invalid = base >= 100 || pct.discount >= 100;
 
   const rows = useMemo(() => {
     return products.map((p) => {
@@ -91,6 +87,7 @@ export function PreciosClient({
             operatingCost: p.operating_cost,
           },
           liveSettings,
+          { sale: p.commission_sale, shipping: p.commission_shipping },
         );
       } catch {
         calc = null;
@@ -105,20 +102,17 @@ export function PreciosClient({
 
   return (
     <div className="space-y-6">
-      {/* Panel de configuración */}
       <Card className="p-5">
-        <div className="mb-4 flex items-center justify-between">
-          <div>
-            <h2 className="font-semibold">Configuración de precios</h2>
-            <p className="text-sm text-muted-foreground">
-              Ajusta los porcentajes y observa el precio en vivo. Guarda para
-              aplicarlo a todo el sistema.
-            </p>
-          </div>
+        <div className="mb-4">
+          <h2 className="font-semibold">Configuración de precios</h2>
+          <p className="text-sm text-muted-foreground">
+            Precio final = base (costo + inversionista + empresa + pasarela) +
+            comisión del producto. Ajusta y observa el precio en vivo.
+          </p>
         </div>
 
         <form action={formAction}>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
             {FIELDS.map((f) => (
               <div key={f.key} className="space-y-1.5">
                 <Label htmlFor={f.key}>{f.label} (%)</Label>
@@ -148,13 +142,13 @@ export function PreciosClient({
           </div>
 
           <div className="mt-4 flex flex-wrap items-center gap-3">
-            <Badge tone={invalid ? "danger" : marginSum > 80 ? "warning" : "brand"}>
-              Suma de márgenes: {marginSum.toFixed(1)}%
+            <Badge tone={invalid ? "danger" : base > 80 ? "warning" : "brand"}>
+              Base (inv+empresa+pasarela): {base.toFixed(1)}%
             </Badge>
             {invalid && (
               <span className="flex items-center gap-1.5 text-sm text-destructive">
                 <AlertCircle className="h-4 w-4" />
-                Los márgenes deben sumar menos de 100% y el descuento menos de 100%.
+                Inversionista + empresa + pasarela debe sumar menos de 100%.
               </span>
             )}
             {state.error && (
@@ -179,13 +173,13 @@ export function PreciosClient({
         </form>
       </Card>
 
-      {/* Tabla de productos con precios en vivo */}
       <Card>
         <div className="flex items-center justify-between p-5 pb-3">
           <div>
             <h2 className="font-semibold">Productos y precio final</h2>
             <p className="text-sm text-muted-foreground">
-              Precios por unidad calculados con la configuración actual.
+              Precios por unidad con la configuración actual y la comisión de
+              cada producto.
             </p>
           </div>
           <Button
@@ -206,10 +200,10 @@ export function PreciosClient({
             <TR>
               <TH>Producto</TH>
               <TH className="text-right">Costo mín.</TH>
+              <TH className="text-right">Comisión</TH>
               <TH className="text-right">P. lista</TH>
               <TH className="text-right">Con descuento</TH>
               <TH className="text-right">Inversionista</TH>
-              <TH className="text-right">Distribuidor</TH>
               <TH className="text-right">Empresa</TH>
               <TH className="text-right">Markup</TH>
               <TH></TH>
@@ -227,7 +221,12 @@ export function PreciosClient({
                   )}
                 </TD>
                 <TD className="text-right tabular-nums">
-                  {formatCurrency(product.unit_cost + product.shipping_cost + product.operating_cost)}
+                  {formatCurrency(
+                    product.unit_cost + product.shipping_cost + product.operating_cost,
+                  )}
+                </TD>
+                <TD className="text-right tabular-nums text-muted-foreground">
+                  {formatCurrency(product.commission_sale + product.commission_shipping)}
                 </TD>
                 <TD className="text-right font-semibold tabular-nums">
                   {calc ? formatCurrency(calc.listPrice) : "—"}
@@ -237,9 +236,6 @@ export function PreciosClient({
                 </TD>
                 <TD className="text-right tabular-nums">
                   {calc ? formatCurrency(calc.allocations.investor) : "—"}
-                </TD>
-                <TD className="text-right tabular-nums">
-                  {calc ? formatCurrency(calc.allocations.distributor) : "—"}
                 </TD>
                 <TD className="text-right tabular-nums">
                   {calc ? formatCurrency(calc.allocations.company) : "—"}
@@ -263,7 +259,7 @@ export function PreciosClient({
             ))}
             {rows.length === 0 && (
               <TR>
-                <TD className="py-8 text-center text-muted-foreground" {...{ colSpan: 9 }}>
+                <TD className="py-8 text-center text-muted-foreground" colSpan={9}>
                   No hay productos. Agrega el primero.
                 </TD>
               </TR>
@@ -276,7 +272,7 @@ export function PreciosClient({
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
         title={editing ? "Editar producto" : "Nuevo producto"}
-        description="Define los costos; el precio se calcula automáticamente."
+        description="Define los costos y la comisión; el precio se calcula automáticamente."
       >
         <ProductForm product={editing} onDone={() => setDialogOpen(false)} />
       </Dialog>

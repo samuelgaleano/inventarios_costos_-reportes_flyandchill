@@ -10,6 +10,7 @@ import type { ActionState } from "./types";
 // ── Distribuidores ─────────────────────────────────────────────
 const distributorSchema = z.object({
   name: z.string().trim().min(1, "El nombre es obligatorio."),
+  type: z.enum(["colaborador", "basico"]).optional(),
   contact_email: z.string().trim().email("Correo inválido.").optional().or(z.literal("")),
   contact_phone: z.string().trim().optional(),
 });
@@ -27,6 +28,7 @@ export async function createDistributor(
   const supabase = await createClient();
   const { error } = await supabase.from("distributors").insert({
     name: d.name,
+    type: d.type ?? "basico",
     contact_email: d.contact_email || null,
     contact_phone: d.contact_phone || null,
   });

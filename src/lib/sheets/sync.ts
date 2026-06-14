@@ -96,10 +96,10 @@ export async function syncToGoogleSheets(): Promise<SyncResult> {
     ]);
 
   const preciosGrid: Grid = [
-    ["Producto", "SKU", "Costo unit.", "Envío", "Operativo", "Costo mín.", "P. lista", "Con descuento", "Inversionista", "Distribuidor", "Empresa", "Pasarela"],
+    ["Producto", "SKU", "Costo unit.", "Envío", "Operativo", "Costo mín.", "Comisión", "P. lista", "Con descuento", "Inversionista", "Empresa", "Pasarela"],
     ...(pricing ?? []).map((p) => [
       p.name, p.sku ?? "", p.unit_cost, p.shipping_cost, p.operating_cost,
-      p.min_cost, p.list_price, p.price_paid, p.investor, p.distributor, p.company, p.gateway,
+      p.min_cost, p.commission, p.list_price, p.price_paid, p.investor, p.company, p.gateway,
     ]),
   ];
 

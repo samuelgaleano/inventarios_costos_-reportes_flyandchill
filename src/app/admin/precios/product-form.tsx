@@ -80,6 +80,36 @@ export function ProductForm({
         </div>
       </div>
 
+      <div className="rounded-lg border bg-muted/30 p-3">
+        <p className="mb-3 text-xs font-medium text-muted-foreground">
+          Comisión del colaborador (se suma al precio). Solo se paga la parte que ejecute.
+        </p>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="commission_sale">Comisión por venta</Label>
+            <Input
+              id="commission_sale"
+              name="commission_sale"
+              type="number"
+              min={0}
+              step={1}
+              defaultValue={product?.commission_sale ?? 0}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="commission_shipping">Comisión por envío</Label>
+            <Input
+              id="commission_shipping"
+              name="commission_shipping"
+              type="number"
+              min={0}
+              step={1}
+              defaultValue={product?.commission_shipping ?? 0}
+            />
+          </div>
+        </div>
+      </div>
+
       {state.error && (
         <div className="flex items-start gap-2 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
