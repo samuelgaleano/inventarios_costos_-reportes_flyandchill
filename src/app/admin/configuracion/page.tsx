@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
-import { setProfileActive } from "@/lib/actions/admin";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { formatCurrency, formatPercent } from "@/lib/format";
 import { AddAccess, AddDistributor, AddInvestor } from "./configuracion-forms";
+import { AccessActions, DistributorActions } from "./row-actions";
 
 export const metadata: Metadata = { title: "Configuración" };
 
@@ -47,6 +47,7 @@ export default async function ConfiguracionPage() {
                   <TH>Correo</TH>
                   <TH>Teléfono</TH>
                   <TH>Estado</TH>
+                  <TH className="text-right">Acción</TH>
                 </TR>
               </THead>
               <TBody>
@@ -60,11 +61,14 @@ export default async function ConfiguracionPage() {
                         {d.active ? "Activo" : "Inactivo"}
                       </Badge>
                     </TD>
+                    <TD className="text-right">
+                      <DistributorActions id={d.id} active={d.active} name={d.name} />
+                    </TD>
                   </TR>
                 ))}
                 {dists.length === 0 && (
                   <TR>
-                    <TD className="py-8 text-center text-muted-foreground" colSpan={4}>
+                    <TD className="py-8 text-center text-muted-foreground" colSpan={5}>
                       Aún no hay distribuidores.
                     </TD>
                   </TR>
@@ -103,14 +107,7 @@ export default async function ConfiguracionPage() {
                       </Badge>
                     </TD>
                     <TD className="text-right">
-                      <form action={setProfileActive.bind(null, p.id, !p.active)}>
-                        <button
-                          type="submit"
-                          className="text-sm font-medium text-brand hover:underline"
-                        >
-                          {p.active ? "Desactivar" : "Activar"}
-                        </button>
-                      </form>
+                      <AccessActions id={p.id} active={p.active} name={p.full_name} />
                     </TD>
                   </TR>
                 ))}

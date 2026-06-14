@@ -76,6 +76,66 @@ export async function setProfileActive(id: string, active: boolean) {
   revalidatePath("/admin/configuracion");
 }
 
+export async function setDistributorActive(id: string, active: boolean) {
+  await requireAdmin();
+  const supabase = await createClient();
+  await supabase.from("distributors").update({ active }).eq("id", id);
+  revalidatePath("/admin/configuracion");
+}
+
+/** Elimina un distribuidor. Bloquea si tiene ventas registradas. */
+export async function deleteDistributor(id: string): Promise<ActionState> {
+  await requireAdmin();
+  const admin = createAdminClient();
+
+  const { count } = await admin
+    .from("sales")
+    .select("id", { count: "exact", head: true })
+    .eq("source_distributor_id", id);
+  if ((count ?? 0) > 0) {
+    return {
+      error:
+        "Este distribuidor tiene ventas registradas. Desactívalo en lugar de eliminarlo (para no perder el historial).",
+    };
+  }
+
+  // Limpia inventario y movimientos asociados, luego elimina.
+  await admin
+    .from("inventory_movements")
+    .delete()
+    .or(`from_distributor_id.eq.${id},to_distributor_id.eq.${id}`);
+  await admin.from("inventory").delete().eq("distributor_id", id);
+  const { error } = await admin.from("distributors").delete().eq("id", id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin/configuracion");
+  revalidatePath("/admin/inventario");
+  return { ok: true };
+}
+
+/** Elimina un acceso (usuario de login). Bloquea si registró ventas. */
+export async function deleteAccess(profileId: string): Promise<ActionState> {
+  await requireAdmin();
+  const admin = createAdminClient();
+
+  const { count } = await admin
+    .from("sales")
+    .select("id", { count: "exact", head: true })
+    .eq("sold_by", profileId);
+  if ((count ?? 0) > 0) {
+    return {
+      error:
+        "Este usuario tiene ventas registradas a su nombre. Desactívalo en lugar de eliminarlo.",
+    };
+  }
+
+  const { error } = await admin.auth.admin.deleteUser(profileId);
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin/configuracion");
+  return { ok: true };
+}
+
 // ── Inversionistas ─────────────────────────────────────────────
 const investorSchema = z.object({
   name: z.string().trim().min(1, "El nombre es obligatorio."),
