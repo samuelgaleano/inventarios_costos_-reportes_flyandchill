@@ -78,6 +78,28 @@ export async function setProfileActive(id: string, active: boolean) {
   revalidatePath("/admin/configuracion");
 }
 
+/** Guarda los precios mayoristas (por producto) de un distribuidor básico. */
+export async function setDistributorPrices(
+  distributorId: string,
+  prices: { product_id: string; price: number }[],
+): Promise<ActionState> {
+  await requireAdmin();
+  if (!distributorId) return { error: "Selecciona un distribuidor." };
+  const supabase = await createClient();
+  const rows = prices
+    .filter((p) => p.price >= 0)
+    .map((p) => ({
+      distributor_id: distributorId,
+      product_id: p.product_id,
+      price: p.price,
+    }));
+  if (rows.length === 0) return { ok: true };
+  const { error } = await supabase.from("distributor_prices").upsert(rows);
+  if (error) return { error: error.message };
+  revalidatePath("/admin/configuracion");
+  return { ok: true, message: "Precios guardados." };
+}
+
 export async function setDistributorActive(id: string, active: boolean) {
   await requireAdmin();
   const supabase = await createClient();

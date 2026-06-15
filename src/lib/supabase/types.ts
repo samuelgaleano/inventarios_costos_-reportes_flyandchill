@@ -59,6 +59,12 @@ export type DistributorRow = {
   created_at: string;
 }
 
+export type DistributorPriceRow = {
+  distributor_id: string;
+  product_id: string;
+  price: number;
+}
+
 export type InvestorRow = {
   id: string;
   name: string;
@@ -95,6 +101,7 @@ export type SaleRow = {
   sale_date: string;
   source_location: InventoryLocation;
   source_distributor_id: string | null;
+  seller_distributor_id: string | null;
   sold_by: string | null;
   unit_list_price: number;
   unit_price_paid: number;
@@ -105,6 +112,10 @@ export type SaleRow = {
   company_amount: number;
   gateway_amount: number;
   total_paid: number;
+  channel: string | null;
+  did_sale: boolean;
+  did_shipping: boolean;
+  is_paid: boolean;
   note: string | null;
   created_at: string;
 }
@@ -161,6 +172,7 @@ export type SaleDetailRow = SaleRow & {
   product_name: string;
   product_sku: string | null;
   distributor_name: string | null;
+  seller_name: string | null;
 }
 
 export type MonthlySummaryRow = {
@@ -262,6 +274,12 @@ export interface Database {
         Update: Partial<SaleRow>;
         Relationships: Rel;
       };
+      distributor_prices: {
+        Row: DistributorPriceRow;
+        Insert: DistributorPriceRow;
+        Update: Partial<DistributorPriceRow>;
+        Relationships: Rel;
+      };
     };
     Views: {
       product_pricing: { Row: ProductPricingRow; Relationships: Rel };
@@ -300,8 +318,18 @@ export interface Database {
           p_source_location: InventoryLocation;
           p_source_distributor_id: string | null;
           p_note: string | null;
+          p_channel?: string | null;
+          p_did_sale?: boolean;
+          p_did_shipping?: boolean;
+          p_is_paid?: boolean;
+          p_unit_price?: number | null;
+          p_seller_distributor_id?: string | null;
         };
         Returns: string;
+      };
+      set_sale_paid: {
+        Args: { p_sale_id: string; p_paid: boolean };
+        Returns: undefined;
       };
     };
     Enums: {

@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
+import { PaidToggle } from "@/components/paid-toggle";
 import { formatCurrency, formatDate, formatNumber } from "@/lib/format";
-import { PAYMENT_LABELS } from "@/lib/labels";
 import type { SaleDetailRow } from "@/lib/supabase/types";
 
 export function SalesTable({
@@ -11,8 +11,8 @@ export function SalesTable({
   sales: SaleDetailRow[];
   variant?: "admin" | "distribuidor";
 }) {
-  const showOrigin = variant === "admin";
-  const showEarning = variant === "distribuidor";
+  const isAdmin = variant === "admin";
+  const cols = isAdmin ? 8 : 7;
 
   return (
     <Table>
@@ -21,10 +21,11 @@ export function SalesTable({
           <TH>Fecha</TH>
           <TH>Producto</TH>
           <TH className="text-right">Cant.</TH>
-          {showOrigin && <TH>Origen</TH>}
-          <TH>Pago</TH>
+          {isAdmin && <TH>Vendedor</TH>}
+          <TH>Canal</TH>
           <TH className="text-right">Total</TH>
-          {showEarning && <TH className="text-right">Mi ganancia</TH>}
+          {!isAdmin && <TH className="text-right">Mi ganancia</TH>}
+          <TH>Pago</TH>
         </TR>
       </THead>
       <TBody>
@@ -35,34 +36,32 @@ export function SalesTable({
             </TD>
             <TD className="font-medium">{s.product_name}</TD>
             <TD className="text-right tabular-nums">{formatNumber(s.quantity)}</TD>
-            {showOrigin && (
+            {isAdmin && (
               <TD>
-                {s.source_location === "bodega" ? (
-                  <Badge tone="neutral">Bodega</Badge>
+                {s.seller_name ? (
+                  <Badge tone="brand">{s.seller_name}</Badge>
                 ) : (
-                  <Badge tone="brand">{s.distributor_name ?? "Distribuidor"}</Badge>
+                  <span className="text-muted-foreground">Empresa</span>
                 )}
               </TD>
             )}
-            <TD className="text-muted-foreground">
-              {PAYMENT_LABELS[s.payment_method]}
-            </TD>
+            <TD className="text-muted-foreground">{s.channel ?? "—"}</TD>
             <TD className="text-right font-semibold tabular-nums">
               {formatCurrency(s.total_paid)}
             </TD>
-            {showEarning && (
+            {!isAdmin && (
               <TD className="text-right tabular-nums text-success">
                 {formatCurrency(s.distributor_amount)}
               </TD>
             )}
+            <TD>
+              <PaidToggle id={s.id} paid={s.is_paid} />
+            </TD>
           </TR>
         ))}
         {sales.length === 0 && (
           <TR>
-            <TD
-              className="py-8 text-center text-muted-foreground"
-              colSpan={showOrigin ? 6 : showEarning ? 6 : 5}
-            >
+            <TD className="py-8 text-center text-muted-foreground" colSpan={cols}>
               Aún no hay ventas registradas.
             </TD>
           </TR>

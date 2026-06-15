@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
+import { requireDistributor } from "@/lib/auth";
 import { PageHeader } from "@/components/page-header";
 import { SaleForm } from "@/components/sale-form";
 import { SalesTable } from "@/components/sales-table";
@@ -8,26 +9,38 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 export const metadata: Metadata = { title: "Registrar venta" };
 
 export default async function DistribuidorVentasPage() {
+  const { profile } = await requireDistributor();
   const supabase = await createClient();
-  const [{ data: inv }, { data: products }, { data: sales }] = await Promise.all([
-    supabase.from("inventory").select("*").eq("location", "distribuidor"),
-    supabase.from("products").select("*").eq("active", true),
-    supabase
-      .from("sales_detail")
-      .select("*")
-      .order("sale_date", { ascending: false })
-      .order("created_at", { ascending: false })
-      .limit(20),
-  ]);
 
-  const nameMap = new Map((products ?? []).map((p) => [p.id, p.name]));
-  const options = (inv ?? [])
+  const [{ data: inv }, { data: pricing }, { data: dist }, { data: sales }] =
+    await Promise.all([
+      supabase.from("inventory").select("*").eq("location", "distribuidor"),
+      supabase.from("product_pricing").select("*").eq("active", true),
+      profile.distributor_id
+        ? supabase.from("distributors").select("type").eq("id", profile.distributor_id).single()
+        : Promise.resolve({ data: null }),
+      supabase
+        .from("sales_detail")
+        .select("*")
+        .order("sale_date", { ascending: false })
+        .order("created_at", { ascending: false })
+        .limit(20),
+    ]);
+
+  const priceMap = new Map((pricing ?? []).map((p) => [p.product_id, p]));
+  const products = (inv ?? [])
     .filter((r) => r.quantity > 0)
-    .map((r) => ({
-      id: r.product_id,
-      name: `${nameMap.get(r.product_id) ?? "Producto"} (${r.quantity} disp.)`,
-    }))
+    .map((r) => {
+      const p = priceMap.get(r.product_id);
+      return {
+        id: r.product_id,
+        name: `${p?.name ?? "Producto"} (${r.quantity} disp.)`,
+        listPrice: p?.price_paid ?? 0,
+      };
+    })
     .sort((a, b) => a.name.localeCompare(b.name));
+
+  const sellerType = (dist?.type as "colaborador" | "basico" | undefined) ?? "basico";
 
   return (
     <>
@@ -41,13 +54,13 @@ export default async function DistribuidorVentasPage() {
             <CardTitle>Nueva venta</CardTitle>
           </CardHeader>
           <CardContent>
-            {options.length === 0 ? (
+            {products.length === 0 ? (
               <p className="text-sm text-muted-foreground">
                 Aún no tienes inventario asignado. Pídele al administrador que te
                 transfiera productos.
               </p>
             ) : (
-              <SaleForm products={options} />
+              <SaleForm products={products} sellerType={sellerType} />
             )}
           </CardContent>
         </Card>

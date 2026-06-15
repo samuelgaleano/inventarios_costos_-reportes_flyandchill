@@ -94,13 +94,13 @@ export async function buildMonthlyReport(ref = new Date()): Promise<ReportData> 
     prodMap.set(s.product_id, cur);
   }
 
-  // Por distribuidor
+  // Por distribuidor que VENDE (gana la comisión/margen)
   const distMap = new Map<string, { id: string | null; name: string; units: number; revenue: number; earnings: number }>();
   for (const s of sales) {
-    const key = s.source_distributor_id ?? "bodega";
+    const key = s.seller_distributor_id ?? "empresa";
     const cur = distMap.get(key) ?? {
-      id: s.source_distributor_id,
-      name: s.distributor_name ?? "Venta directa (bodega)",
+      id: s.seller_distributor_id,
+      name: s.seller_name ?? "Venta directa (empresa)",
       units: 0,
       revenue: 0,
       earnings: 0,
@@ -122,8 +122,8 @@ export async function buildMonthlyReport(ref = new Date()): Promise<ReportData> 
   };
 }
 
-/** Filtra el informe a las ventas de un distribuidor específico. */
+/** Filtra el informe a las ventas de un distribuidor (las que él vende). */
 export function reportForDistributor(report: ReportData, distributorId: string) {
-  const sales = report.sales.filter((s) => s.source_distributor_id === distributorId);
+  const sales = report.sales.filter((s) => s.seller_distributor_id === distributorId);
   return { sales, totals: aggregate(sales) };
 }

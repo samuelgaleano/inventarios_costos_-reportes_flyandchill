@@ -7,23 +7,35 @@ import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { formatCurrency, formatPercent } from "@/lib/format";
 import { AddAccess, AddDistributor, AddInvestor } from "./configuracion-forms";
 import { AccessActions, DistributorActions } from "./row-actions";
+import { BasicoPrices } from "./basico-prices";
 
 export const metadata: Metadata = { title: "Configuración" };
 
 export default async function ConfiguracionPage() {
   const supabase = await createClient();
-  const [{ data: distributors }, { data: profiles }, { data: investors }] =
-    await Promise.all([
-      supabase.from("distributors").select("*").order("name"),
-      supabase.from("profiles").select("*").eq("role", "distribuidor").order("full_name"),
-      supabase.from("investors").select("*").order("name"),
-    ]);
+  const [
+    { data: distributors },
+    { data: profiles },
+    { data: investors },
+    { data: products },
+    { data: distPrices },
+  ] = await Promise.all([
+    supabase.from("distributors").select("*").order("name"),
+    supabase.from("profiles").select("*").eq("role", "distribuidor").order("full_name"),
+    supabase.from("investors").select("*").order("name"),
+    supabase.from("products").select("*").eq("active", true).order("name"),
+    supabase.from("distributor_prices").select("*"),
+  ]);
 
   const dists = distributors ?? [];
   const distMap = new Map(dists.map((d) => [d.id, d.name]));
   const distOptions = dists
     .filter((d) => d.active)
     .map((d) => ({ id: d.id, name: d.name }));
+  const basicos = dists
+    .filter((d) => d.type === "basico")
+    .map((d) => ({ id: d.id, name: d.name }));
+  const productOpts = (products ?? []).map((p) => ({ id: p.id, name: p.name }));
 
   return (
     <>
@@ -126,6 +138,24 @@ export default async function ConfiguracionPage() {
                 )}
               </TBody>
             </Table>
+          </CardContent>
+        </Card>
+
+        {/* Precios mayoristas por distribuidor básico */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Precios mayoristas (distribuidores básicos)</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Precio por producto al que cada distribuidor básico recibe la
+              mercancía. La diferencia con su precio de venta es su ganancia.
+            </p>
+          </CardHeader>
+          <CardContent className="px-0">
+            <BasicoPrices
+              distributors={basicos}
+              products={productOpts}
+              prices={distPrices ?? []}
+            />
           </CardContent>
         </Card>
 

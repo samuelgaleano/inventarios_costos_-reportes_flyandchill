@@ -12,6 +12,57 @@ function getResend(): Resend {
   return new Resend(key);
 }
 
+const cop = (n: number) =>
+  new Intl.NumberFormat("es-CO", {
+    style: "currency",
+    currency: "COP",
+    maximumFractionDigits: 0,
+  }).format(n || 0);
+
+/** Notifica al administrador cuando se registra una venta (mejor esfuerzo). */
+export async function notifyAdminOfSale(saleId: string): Promise<void> {
+  const adminTo = process.env.REPORT_ADMIN_EMAIL;
+  if (!adminTo || !process.env.RESEND_API_KEY) return; // sin configurar → no-op
+
+  const admin = createAdminClient();
+  const { data: s } = await admin
+    .from("sales_detail")
+    .select("*")
+    .eq("id", saleId)
+    .single();
+  if (!s) return;
+
+  const rows: [string, string][] = [
+    ["Producto", `${s.product_name} × ${s.quantity}`],
+    ["Total", cop(s.total_paid)],
+    ["Canal", s.channel ?? "—"],
+    ["Vendedor", s.seller_name ?? "Empresa (directo)"],
+    ["Comisión / margen", cop(s.distributor_amount)],
+    ["Ganancia empresa", cop(s.company_amount)],
+    ["Pago", s.is_paid ? "Confirmado" : "Pendiente"],
+    ["Fecha", s.sale_date],
+  ];
+  const html = `<div style="font-family:Arial,sans-serif;color:#0f172a">
+    <h2 style="margin:0 0 8px">Nueva venta registrada</h2>
+    <table style="border-collapse:collapse;font-size:14px">
+      ${rows
+        .map(
+          ([k, v]) =>
+            `<tr><td style="padding:4px 12px 4px 0;color:#64748b">${k}</td><td style="padding:4px 0;font-weight:600">${v}</td></tr>`,
+        )
+        .join("")}
+    </table>
+  </div>`;
+
+  const resend = getResend();
+  await resend.emails.send({
+    from: FROM,
+    to: adminTo,
+    subject: `Nueva venta: ${s.product_name} ×${s.quantity} · ${cop(s.total_paid)}`,
+    html,
+  });
+}
+
 export interface SendResult {
   sent: number;
   errors: string[];

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/page-header";
-import { SaleForm } from "@/components/sale-form";
+import { SaleForm, type OriginOption } from "@/components/sale-form";
 import { SalesTable } from "@/components/sales-table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -9,9 +9,9 @@ export const metadata: Metadata = { title: "Ventas" };
 
 export default async function VentasPage() {
   const supabase = await createClient();
-  const [{ data: products }, { data: distributors }, { data: sales }] =
+  const [{ data: pricing }, { data: distributors }, { data: sales }] =
     await Promise.all([
-      supabase.from("products").select("*").eq("active", true).order("name"),
+      supabase.from("product_pricing").select("*").eq("active", true).order("name"),
       supabase.from("distributors").select("*").eq("active", true).order("name"),
       supabase
         .from("sales_detail")
@@ -21,19 +21,30 @@ export default async function VentasPage() {
         .limit(30),
     ]);
 
-  const origins = [
+  const products = (pricing ?? []).map((p) => ({
+    id: p.product_id,
+    name: p.name,
+    listPrice: p.price_paid,
+  }));
+
+  const origins: OriginOption[] = [
     { value: "bodega", label: "Bodega" },
     ...(distributors ?? []).map((d) => ({
       value: `dist:${d.id}`,
-      label: `Distribuidor: ${d.name}`,
+      label: `${d.name} (${d.type === "colaborador" ? "colaborador" : "básico"})`,
+      type: d.type,
     })),
   ];
+
+  const collaborators = (distributors ?? [])
+    .filter((d) => d.type === "colaborador")
+    .map((d) => ({ id: d.id, name: d.name }));
 
   return (
     <>
       <PageHeader
         title="Ventas"
-        description="Registra una venta indicando el origen del producto."
+        description="Registra una venta: origen, canal, comisión y estado de pago."
       />
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-1">
@@ -41,10 +52,7 @@ export default async function VentasPage() {
             <CardTitle>Registrar venta</CardTitle>
           </CardHeader>
           <CardContent>
-            <SaleForm
-              products={(products ?? []).map((p) => ({ id: p.id, name: p.name }))}
-              origins={origins}
-            />
+            <SaleForm products={products} origins={origins} collaborators={collaborators} />
           </CardContent>
         </Card>
 
